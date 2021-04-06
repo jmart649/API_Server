@@ -1,18 +1,22 @@
 import { Router } from 'express'
 
-import * as notes from '../../helpers/db'
+import * as notesService from '../../services/notes'
 import logger from '../../helpers/logger'
+import auth from '../../helpers/auth'
 
 const router = Router()
 
-router.get('/', (req, res) => {
-    res.send(notes.getAll())
+router.use(auth.authenticate('local', { session: false }))
+
+router.get('/', async (req, res) => {
+    const notes = await notesService.getAll()
+    res.send(notes)
 })
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { note: newNote } = req.body
     if(newNote){
-      const note = notes.add(newNote)
+      const note = await notesService.add(newNote)
       if(note.error) {
           res.status(400)
       }
@@ -22,10 +26,10 @@ router.post('/', (req, res) => {
     }
 })
 
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
     const { id } = req.params
-    const note = notes.getById(id)
-    if(note) {
+    const note = await notesService.getById(id)
+    if (note) {
         res.send(note)
     } else {
         logger.warn(`Note ${id} doesn't exist`)
@@ -33,10 +37,10 @@ router.get('/:id', (req, res) => {
     }
 })
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
     const { id } = req.params
     const { note: updatedNote } = req.body
-    const response = notes.update(id, updatedNote)
+    const response = await notesService.update(id, updatedNote)
     
     if (response.error) {
         res.status(400)
@@ -44,9 +48,9 @@ router.put('/:id', (req, res) => {
       res.send(response)
 })
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     const { id } = req.params
-    res.send(notes.remove(id))
+    res.send(await notesService.remove(id))
 })
 
 export default router
